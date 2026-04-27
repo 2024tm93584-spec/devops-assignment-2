@@ -46,7 +46,6 @@ pipeline {
                 '''
             }
         }
-        sqp_acb790d10861547c79fd305d71b2b932cf2807cd
         stage('SonarQube Analysis') {
     steps {
         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
