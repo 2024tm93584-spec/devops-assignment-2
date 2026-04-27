@@ -6,6 +6,7 @@ pipeline {
         IMAGE_TAG = "${BUILD_NUMBER}"
         PYTHON_EXE = 'C:\\Users\\saharsh vashishtha\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
         KUBECONFIG = 'C:\\Users\\saharsh vashishtha\\.kube\\config'
+        SONAR_TOKEN = 'sqp_acb790d10861547c79fd305d71b2b932cf2807cd'
     }
 
     stages {
@@ -45,6 +46,7 @@ pipeline {
                 '''
             }
         }
+        sqp_acb790d10861547c79fd305d71b2b932cf2807cd
         stage('SonarQube Analysis') {
     steps {
         withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
