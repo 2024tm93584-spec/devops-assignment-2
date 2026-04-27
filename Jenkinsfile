@@ -6,7 +6,6 @@ pipeline {
         IMAGE_TAG = "${BUILD_NUMBER}"
         PYTHON_EXE = 'C:\\Users\\saharsh vashishtha\\AppData\\Local\\Programs\\Python\\Python312\\python.exe'
         KUBECONFIG = 'C:\\Users\\saharsh vashishtha\\.kube\\config'
-        SONAR_TOKEN = 'sqp_acb790d10861547c79fd305d71b2b932cf2807cd'
     }
 
     stages {
@@ -46,17 +45,19 @@ pipeline {
                 '''
             }
         }
+
         stage('SonarQube Analysis') {
-    steps {
-        withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
-            bat '''
-            sonar-scanner ^
-            -Dsonar.host.url=http://localhost:9000 ^
-            -Dsonar.token=%SONAR_TOKEN%
-            '''
+            steps {
+                withCredentials([string(credentialsId: 'sonar-token', variable: 'SONAR_TOKEN')]) {
+                    bat '''
+                    sonar-scanner ^
+                    -Dsonar.host.url=http://localhost:9000 ^
+                    -Dsonar.token=%SONAR_TOKEN%
+                    '''
+                }
+            }
         }
-    }
-}
+
         stage('Build Docker Image') {
             steps {
                 bat '''
@@ -83,13 +84,23 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 bat '''
+                minikube status >nul 2>&1
+                if %ERRORLEVEL% NEQ 0 minikube start
+
                 kubectl config use-context minikube
                 kubectl config current-context
-                kubectl get ns
-                kubectl get deployment -n aceest
+
+                kubectl get ns aceest >nul 2>&1
+                if %ERRORLEVEL% NEQ 0 kubectl create namespace aceest
+
+                kubectl get deployment aceest-fitness -n aceest
+                if %ERRORLEVEL% NEQ 0 exit /b 1
 
                 kubectl set image deployment/aceest-fitness aceest-fitness=%IMAGE_NAME%:%IMAGE_TAG% -n aceest
+                if %ERRORLEVEL% NEQ 0 exit /b 1
+
                 kubectl rollout status deployment/aceest-fitness -n aceest
+                if %ERRORLEVEL% NEQ 0 exit /b 1
                 '''
             }
         }
@@ -99,6 +110,9 @@ pipeline {
         failure {
             bat '''
             kubectl config current-context >nul 2>&1
+            if %ERRORLEVEL% NEQ 0 exit /b 0
+
+            kubectl get deployment aceest-fitness -n aceest >nul 2>&1
             if %ERRORLEVEL% NEQ 0 exit /b 0
 
             kubectl rollout undo deployment/aceest-fitness -n aceest
